@@ -1,88 +1,85 @@
-# Network Execution Plan and Rollback Runbook
+# Network Runbook (Caveman Mode)
 
-This file is the source of truth for applying and recovering configuration changes.
-All steps are written for first deployment on new hardware.
+Use this file on deployment day.
+Short steps. No guesswork.
 
-## Deployment Rules
+## VLAN set
 
-1. Apply router scripts in lexical order (`01` -> `14`).
-2. Verify each step before moving forward.
-3. If a step fails, execute rollback for that step immediately.
-4. If rollback does not restore a healthy state, use worst-case recovery path.
-5. Record incidents using the template at the end of this file.
+- MGMT: `10` -> `192.168.10.0/24`
+- CORE: `20` -> `192.168.20.0/24`
+- SRV: `30` -> `192.168.30.0/24`
+- KIDS: `50` -> `192.168.50.0/24`
+- IOT: `60` -> `192.168.60.0/24`
+- GUEST: `70` -> `192.168.70.0/24`
 
-## Router Script Variable Pattern
+## Golden rules
 
-- Each `router/*.rsc` file declares RouterOS `:local` variables at the top.
-- Values are injected by Go templates (for example `{{ .WAN_INTERFACE }}`) from `secrets.env`.
-- Rendering uses strict missing-key behavior; missing variables fail before anything is sent to the router.
-- Keep variables step-local so each file is auditable and independently testable.
+1. Run scripts in order: `01` to `14`.
+2. After each step: check before next.
+3. If fail: stop. Roll back. Do not continue.
+4. Keep console/direct cable ready.
 
-## Pre-Flight Checks
+## Pre-flight
 
-- Confirm out-of-band recovery path exists (serial or direct local access).
-- Confirm SSH key login works before automated runs.
-- Confirm `secrets.env` exists and has non-placeholder values locally.
-- Confirm target is correct hardware and not production by mistake.
+### Do
 
-## Router Steps
+- Verify SSH key login works.
+- Verify `secrets.env` exists.
+- Verify WAN/trunk ports are correct.
+- Run dry-run.
 
-| Step | File | Purpose | Prerequisites | Success Signals | Immediate Rollback | Worst-Case Recovery |
-|---|---|---|---|---|---|---|
-| 01 | `router/01-password.rsc` | Set/update admin credential policy | Local console fallback confirmed | Admin auth policy updated, login test succeeds | Reapply previous credential settings from local session | Boot into recovery flow and reset credentials from console |
-| 02 | `router/02-wan.rsc` | Define WAN uplink and address mode | Correct WAN interface identified | WAN link up, default route present | Remove/disable added WAN interface and route | Disable WAN config and restore minimal mgmt IP locally |
-| 03 | `router/03-firewall-wan-drop.rsc` | Baseline WAN input hardening | Mgmt access allowlist verified | WAN input blocked except expected mgmt paths | Disable/drop rules added in this step | Use safe mode or console to remove locking rules |
-| 04 | `router/04-clock.rsc` | Set timezone and clock policy | Timezone chosen | Correct timezone and system time applied | Revert timezone/NTP flags to previous values | Reset time config manually from console |
-| 05 | `router/05-bridge-vlans.rsc` | Create bridge and VLAN filtering plan | VLAN IDs and ports confirmed | Bridge exists, VLAN filter entries visible | Remove newly added bridge/VLAN entries | Disable VLAN filtering and return to flat LAN temporarily |
-| 06 | `router/06-vlan-interfaces.rsc` | Create VLAN L3 interfaces | Step 05 successful | VLAN interfaces up/up on expected bridge | Remove added VLAN interfaces | Recreate mgmt interface on native LAN then retry |
-| 07 | `router/07-dhcp.rsc` | Add DHCP pools and servers | VLAN interfaces present | Clients receive expected scope addresses | Disable/remove DHCP server and pool additions | Re-enable previous DHCP source or static fallback |
-| 08 | `router/08-static-lease.rsc` | Reserve static lease placeholders | Known MAC placeholders ready | Lease entries created with placeholders only | Remove leases created in this step | Flush lease additions and rebuild after validation |
-| 09 | `router/09-nat.rsc` | Add outbound NAT policy | WAN and LAN routing already valid | LAN clients reach internet | Disable/remove new NAT rule | Restore previous srcnat behavior manually |
-| 10 | `router/10-firewall-forward.rsc` | Add inter-zone forward policy | NAT and addressing verified | Intended traffic passes, blocked traffic denied | Disable forward rules from this step | Temporarily set permissive rule, then rebuild policy |
-| 11 | `router/11-dns-redirect.rsc` | Enforce local DNS redirection | Local DNS resolver available | Client DNS forced to approved resolver | Remove DNS redirect NAT/filter rules | Disable redirect and use fallback DNS policy |
-| 12 | `router/12-dns-fallback.rsc` | Add fallback DNS behavior | Step 11 successful | Resolver fallback works when primary fails | Remove fallback resolver settings | Revert to basic resolver config only |
-| 13 | `router/13-ntp.rsc` | Configure NTP client servers | Upstream DNS/WAN healthy | NTP synchronized | Remove custom NTP server entries | Set manual time until connectivity restored |
-| 14 | `router/14-capsman.rsc` | CAPsMAN baseline for AP adoption | VLAN and DHCP for AP mgmt ready | AP can discover/register to controller | Disable CAPsMAN settings added in step | Manage AP standalone until controller is fixed |
+### Check
 
-## AP and Switch Notes
+- Render succeeds.
+- No missing variable errors.
 
-- AP bootstrap and switch UI runbooks are in `ap/` and `switch/`.
-- Every manual switch action must include:
-  - exact UI path,
-  - verification checkpoint,
-  - reverse action.
+## Step map
 
-## Known-Good Restart Points
+| Step | File | What it does | Quick check | If broken |
+|---|---|---|---|---|
+| 01 | `router/01-password.rsc` | Sets admin password | Login works with new creds | Reset creds from local access |
+| 02 | `router/02-wan.rsc` | Starts WAN DHCP | Default route + ping internet | Disable bad WAN client and retry |
+| 03 | `router/03-firewall-wan-drop.rsc` | Input chain hardening | MGMT can still reach router, WAN input blocked | Remove last filter rules from local session |
+| 04 | `router/04-clock.rsc` | Sets clock/timezone | Time and timezone look right | Set clock manually |
+| 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN IDs 10/20/30/50/60/70 present | Disable vlan-filtering and recover access |
+| 06 | `router/06-vlan-interfaces.rsc` | VLAN interfaces + gateway IPs | Interfaces `vlan-*` exist with `.1` IPs | Remove bad VLAN interfaces |
+| 07 | `router/07-dhcp.rsc` | DHCP pools/servers/networks | Clients get leases on each VLAN | Disable DHCP entries and retry |
+| 08 | `router/08-static-lease.rsc` | Static lease for server | `192.168.30.10` lease bound to server MAC | Remove bad lease entry |
+| 09 | `router/09-nat.rsc` | WAN masquerade | LAN clients reach internet | Disable NAT rule and re-add |
+| 10 | `router/10-firewall-forward.rsc` | Inter-VLAN forward policy | CORE->SRV works, KIDS/IOT/GUEST blocked from LAN | Disable step 10 rules and apply safe baseline |
+| 11 | `router/11-dns-redirect.rsc` | Force DNS to AdGuard for CORE/KIDS/IOT | DNS logs show queries at AdGuard | Remove step 11 NAT rules |
+| 12 | `router/12-dns-fallback.rsc` | Router DNS fallback | Router DNS uses AdGuard + fallback | Reset `/ip dns` to known-good |
+| 13 | `router/13-ntp.rsc` | NTP client config | Router time syncs | Set time manually and retry |
+| 14 | `router/14-capsman.rsc` | CAPsMAN profiles/provisioning | AP appears in CAPsMAN | Disable CAPsMAN config and use AP standalone |
 
-- After step 04: mgmt access and time baseline are stable.
-- After step 08: LAN segmentation and addressing should be stable.
-- After step 10: routing and firewall intent should be stable.
-- After step 14: wireless controller integration complete.
+## Important security notes
 
-If a failure requires reset, restart from the last known-good point and reapply forward.
+- Step 03 allows DHCP input on non-WAN interfaces so non-MGMT VLANs can still get leases.
+- Step 03 still blocks non-MGMT admin access to the router.
+- Only MGMT subnet should manage router.
 
-## First-Time Hardware Recovery Path
+## Safe first run command
 
-1. Stop automation immediately.
-2. Attempt SSH recovery with previous key/user.
-3. If unreachable, use direct LAN/console access.
-4. Disable last applied rule group or script effect.
-5. Confirm mgmt path health (`ping`, local auth, route visibility).
-6. Resume from the last successful script (not the failed midpoint).
+```bash
+./scripts/apply-all.sh --env secrets.env --pause-each
+```
 
-## Incident Note Template
+## Resume command
 
-Use this entry format for each failure:
+```bash
+./scripts/apply-all.sh --env secrets.env --resume
+```
+
+## Incident note template
 
 ```text
 Date/Time:
-Hardware:
 Step/File:
-Observed failure:
+What failed:
 Impact:
-Rollback action used:
-Result after rollback:
-Follow-up change:
+Rollback done:
+Result:
+Next action:
 Operator:
 ```
 
