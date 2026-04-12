@@ -33,13 +33,36 @@ Short steps. No guesswork.
 - Render succeeds.
 - No missing variable errors.
 
+## Step 03 split warning (important)
+
+`--pause-each` alone is not enough here.
+After step 03, non-MGMT router access is dropped.
+Your laptop may still be on old default subnet.
+
+Do this exact split:
+
+```bash
+./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
+```
+
+Then:
+
+- Set laptop static IP on MGMT subnet (example `192.168.10.50/24`).
+- Set `ROUTER_HOST=192.168.10.1` in `secrets.env`.
+
+Continue:
+
+```bash
+./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc --pause-each
+```
+
 ## Step map
 
 | Step | File | What it does | Quick check | If broken |
 |---|---|---|---|---|
 | 01 | `router/01-password.rsc` | Sets admin password | Login works with new creds | Reset creds from local access |
 | 02 | `router/02-wan.rsc` | Starts WAN DHCP | Default route + ping internet | Disable bad WAN client and retry |
-| 03 | `router/03-firewall-wan-drop.rsc` | Input chain hardening | MGMT can still reach router, WAN input blocked | Remove last filter rules from local session |
+| 03 | `router/03-firewall-wan-drop.rsc` | Input chain hardening | WAN input blocked, verify from direct local session before continuing | Remove last filter rules from local session |
 | 04 | `router/04-clock.rsc` | Sets clock/timezone | Time and timezone look right | Set clock manually |
 | 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN IDs 10/20/30/50/60/70 present | Disable vlan-filtering and recover access |
 | 06 | `router/06-vlan-interfaces.rsc` | VLAN interfaces + gateway IPs | Interfaces `vlan-*` exist with `.1` IPs | Remove bad VLAN interfaces |
@@ -49,7 +72,7 @@ Short steps. No guesswork.
 | 10 | `router/10-firewall-forward.rsc` | Inter-VLAN forward policy | CORE->SRV works, KIDS/IOT/GUEST blocked from LAN | Disable step 10 rules and apply safe baseline |
 | 11 | `router/11-dns-redirect.rsc` | Force DNS to AdGuard for CORE/KIDS/IOT | DNS logs show queries at AdGuard | Remove step 11 NAT rules |
 | 12 | `router/12-dns-fallback.rsc` | Router DNS fallback | Router DNS uses AdGuard + fallback | Reset `/ip dns` to known-good |
-| 13 | `router/13-ntp.rsc` | NTP client config | Router time syncs | Set time manually and retry |
+| 13 | `router/13-ntp.rsc` | NTP client config | Router time syncs (local first, public fallback) | Set time manually and retry |
 | 14 | `router/14-capsman.rsc` | CAPsMAN profiles/provisioning | AP appears in CAPsMAN | Disable CAPsMAN config and use AP standalone |
 
 ## Important security notes
@@ -61,7 +84,8 @@ Short steps. No guesswork.
 ## Safe first run command
 
 ```bash
-./scripts/apply-all.sh --env secrets.env --pause-each
+./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
+./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc --pause-each
 ```
 
 ## Resume command

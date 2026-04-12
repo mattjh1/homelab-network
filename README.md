@@ -34,16 +34,17 @@ Source of truth is template scripts in `router/` and `ap/`.
 ### Do
 
 1. Plug only router + your laptop + WAN.
-2. Set admin password.
-3. Set SSH key auth.
-4. Copy env file and fill values.
+2. Fresh router reminder: default IP is usually `192.168.88.1` and default user is `admin` (password may be blank depending on model/firmware).
+3. Set admin password.
+4. Set SSH key auth.
+5. Copy env file and fill values.
 
 ```bash
 cp secrets.env.example secrets.env
 chmod 600 secrets.env
 ```
 
-5. Dry-run first.
+6. Dry-run first.
 
 ```bash
 ./scripts/apply-all.sh --env secrets.env --dry-run
@@ -67,10 +68,23 @@ chmod 600 secrets.env
 
 ## Apply flow
 
-Run with pauses on first real deployment:
+Two-phase first run is required to avoid lockout after step 03.
+
+Phase 1 (stop after step 03):
 
 ```bash
-./scripts/apply-all.sh --env secrets.env --pause-each
+./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
+```
+
+Then move your laptop to MGMT subnet and update target host:
+
+- Set laptop static IP like `192.168.10.50/24`.
+- Set `ROUTER_HOST=192.168.10.1` in `secrets.env`.
+
+Phase 2 (continue with pauses):
+
+```bash
+./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc --pause-each
 ```
 
 Useful options:
@@ -78,6 +92,8 @@ Useful options:
 ```bash
 ./scripts/apply-all.sh --env secrets.env --from 05-bridge-vlans.rsc
 ./scripts/apply-all.sh --env secrets.env --until 07-dhcp.rsc
+./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
+./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc
 ./scripts/apply-all.sh --env secrets.env --resume
 ```
 
@@ -87,6 +103,7 @@ Useful options:
 - Router admin access is only allowed from MGMT subnet.
 - DNS redirect forces CORE/KIDS/IOT to AdGuard.
 - Guest DNS uses public resolver (`1.1.1.1` by default).
+- NTP uses local server first and public fallback for first boot safety.
 
 ## AP and switch
 

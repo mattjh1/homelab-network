@@ -2,6 +2,7 @@
 
 This switch workflow is documented manually because many SMB switch platforms are UI-first.
 Keep this file aligned with VLAN and DHCP intent in `docs/network-plan.md`.
+VLANs in use: `10/20/30/50/60/70` (subnets and gateways are defined in router scripts).
 
 ## Before You Start
 

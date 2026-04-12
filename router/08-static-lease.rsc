@@ -4,6 +4,6 @@
 :local leaseMac "{{ .STATIC_LEASE_MAC }}"
 
 :put "Step 08: static lease start"
-/ip dhcp-server lease add address=$leaseIp mac-address=$leaseMac server=dhcp-srv comment="hemserver"
+/ip dhcp-server lease add address=$leaseIp mac-address=$leaseMac server=dhcp-srv comment="homeserver"
 :put "Step 08: static lease complete"
 
