@@ -9,7 +9,6 @@
 /interface bridge vlan add bridge=$lanBridge vlan-ids=10 tagged=($lanBridge . "," . $trunkPort)
 /interface bridge vlan add bridge=$lanBridge vlan-ids=20 tagged=($lanBridge . "," . $trunkPort)
 /interface bridge vlan add bridge=$lanBridge vlan-ids=30 tagged=($lanBridge . "," . $trunkPort)
-/interface bridge vlan add bridge=$lanBridge vlan-ids=40 tagged=($lanBridge . "," . $trunkPort)
 /interface bridge vlan add bridge=$lanBridge vlan-ids=50 tagged=($lanBridge . "," . $trunkPort)
 /interface bridge vlan add bridge=$lanBridge vlan-ids=60 tagged=($lanBridge . "," . $trunkPort)
 /interface bridge vlan add bridge=$lanBridge vlan-ids=70 tagged=($lanBridge . "," . $trunkPort)
