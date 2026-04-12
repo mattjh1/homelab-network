@@ -3,6 +3,65 @@
 Infrastructure-as-code style baseline for a MikroTik-based homelab network.
 Configuration is split into ordered RouterOS Go-template scripts, with documented manual steps for devices that are UI-driven.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  Internet[Internet]
+  ISP["Bahnhof/TeliaOpenNet"]
+  Router["MikroTikRouterROS7"]
+  Switch["PoEManagedSwitch"]
+  AP["MikroTikcAPax"]
+  Server["HomeServer(AdGuard/Nextcloud/Immich/Grafana/Cloudflared)"]
+
+  Internet --> ISP --> Router
+  Router -->|TrunkVLAN10,20,30,40,50,60,70| Switch
+  Switch -->|TrunkVLAN10,20,40,50,60,70| AP
+  Switch -->|AccessVLAN30| Server
+
+  subgraph vlanPlan [VLANPlan]
+    Mgmt["VLAN10 MGMT 192.168.10.0/24"]
+    Core["VLAN20 CORE 192.168.20.0/24"]
+    Srv["VLAN30 SRV 192.168.30.0/24"]
+    Work["VLAN40 WORK 192.168.40.0/24"]
+    Kids["VLAN50 KIDS 192.168.50.0/24"]
+    Iot["VLAN60 IOT 192.168.60.0/24"]
+    Guest["VLAN70 GUEST 192.168.70.0/24"]
+  end
+
+  Router --> Mgmt
+  Router --> Core
+  Router --> Srv
+  Router --> Work
+  Router --> Kids
+  Router --> Iot
+  Router --> Guest
+
+  Server -->|AdGuardDNS/NTP| Router
+  Router -->|"DNSRedirect CORE/WORK/KIDS/IOT -> 192.168.30.10"| Server
+  Router -->|"GuestDNSDirect -> 1.1.1.1"| Internet
+
+  Router -->|"CAPsMAN Controller on vlan-mgmt"| AP
+
+  CoreClients["COREClients"]
+  WorkClients["WORKClients"]
+  KidsClients["KIDSClients"]
+  IotClients["IOTClients"]
+  GuestClients["GUESTClients"]
+
+  AP --> CoreClients
+  AP --> WorkClients
+  AP --> KidsClients
+  AP --> IotClients
+  AP --> GuestClients
+
+  CoreClients -->|Allowed| Server
+  WorkClients -->|Allowed| Server
+  KidsClients -->|"BlockedToLAN(InternetOnly)"| Internet
+  IotClients -->|"BlockedToLAN(InternetOnly)"| Internet
+  GuestClients -->|"BlockedToLAN(InternetOnly)"| Internet
+```
+
 ## Principles
 
 - Keep all tracked files non-sensitive.
