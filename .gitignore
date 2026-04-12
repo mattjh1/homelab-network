@@ -1,0 +1,26 @@
+# Local secrets and env
+secrets.env
+.env
+.env.*
+
+# SSH keys and crypto material
+*.pem
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.key
+*.p12
+*.pfx
+
+# Local execution artifacts
+logs/
+state/
+.rendered/
+*.log
+*.tmp
+
+# Editor/system
+.DS_Store
+Thumbs.db
+
