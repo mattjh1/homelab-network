@@ -16,7 +16,7 @@ Source of truth is template scripts in `router/` and `ap/`.
 
 - Never commit real secrets.
 - Keep one script per step.
-- Run in order (`01` -> `14`).
+- Run in order (`01` -> `15`).
 - If one step fails, stop.
 - Fix or roll back before next step.
 
@@ -68,23 +68,15 @@ chmod 600 secrets.env
 
 ## Apply flow
 
-Two-phase first run is required to avoid lockout after step 03.
+Step 03 is now safe baseline only.
+Strict input lock-down is step 15.
+You can run straight through if checks are good.
 
-Phase 1 (stop after step 03):
-
-```bash
-./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
-```
-
-Then move your laptop to MGMT subnet and update target host:
-
-- Set laptop static IP like `192.168.10.50/24`.
-- Set `ROUTER_HOST=192.168.10.1` in `secrets.env`.
-
-Phase 2 (continue with pauses):
+Recommended first run:
 
 ```bash
-./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc --pause-each
+./scripts/apply-all.sh --env secrets.env --until 14-capsman.rsc --pause-each
+./scripts/apply-all.sh --env secrets.env --until 15-firewall-input-lockdown.rsc
 ```
 
 Useful options:
@@ -92,15 +84,15 @@ Useful options:
 ```bash
 ./scripts/apply-all.sh --env secrets.env --from 05-bridge-vlans.rsc
 ./scripts/apply-all.sh --env secrets.env --until 07-dhcp.rsc
-./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
-./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc
+./scripts/apply-all.sh --env secrets.env --until 14-capsman.rsc
+./scripts/apply-all.sh --env secrets.env --until 15-firewall-input-lockdown.rsc
 ./scripts/apply-all.sh --env secrets.env --resume
 ```
 
 ## Important behavior
 
 - DHCP input is allowed on non-WAN interfaces so all VLANs can get leases.
-- Router admin access is only allowed from MGMT subnet.
+- Router admin lock-down is applied in step 15 (MGMT only).
 - DNS redirect forces CORE/KIDS/IOT to AdGuard.
 - Guest DNS uses public resolver (`1.1.1.1` by default).
 - NTP uses local server first and public fallback for first boot safety.
@@ -110,6 +102,7 @@ Useful options:
 - Switch config is manual. See `switch/README.md`.
 - AP bootstrap is template-based in `ap/cap-bootstrap.rsc`.
 - AP and switch should be connected after base router steps are stable.
+- SSH post-install setup (jump host + ProxyJump): `docs/ssh-setup.md`.
 
 ## Secrets
 

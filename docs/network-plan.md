@@ -14,7 +14,7 @@ Short steps. No guesswork.
 
 ## Golden rules
 
-1. Run scripts in order: `01` to `14`.
+1. Run scripts in order: `01` to `15`.
 2. After each step: check before next.
 3. If fail: stop. Roll back. Do not continue.
 4. Keep console/direct cable ready.
@@ -33,28 +33,11 @@ Short steps. No guesswork.
 - Render succeeds.
 - No missing variable errors.
 
-## Step 03 split warning (important)
+## Input lock-down timing
 
-`--pause-each` alone is not enough here.
-After step 03, non-MGMT router access is dropped.
-Your laptop may still be on old default subnet.
-
-Do this exact split:
-
-```bash
-./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
-```
-
-Then:
-
-- Set laptop static IP on MGMT subnet (example `192.168.10.50/24`).
-- Set `ROUTER_HOST=192.168.10.1` in `secrets.env`.
-
-Continue:
-
-```bash
-./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc --pause-each
-```
+Step 03 is safe baseline only.
+Strict router input lock-down moved to step 15.
+This reduces deploy friction and reconnect pain.
 
 ## Step map
 
@@ -62,7 +45,7 @@ Continue:
 |---|---|---|---|---|
 | 01 | `router/01-password.rsc` | Sets admin password | Login works with new creds | Reset creds from local access |
 | 02 | `router/02-wan.rsc` | Starts WAN DHCP | Default route + ping internet | Disable bad WAN client and retry |
-| 03 | `router/03-firewall-wan-drop.rsc` | Input chain hardening | WAN input blocked, verify from direct local session before continuing | Remove last filter rules from local session |
+| 03 | `router/03-firewall-wan-drop.rsc` | Input baseline (safe) | WAN input blocked, DHCP still works for non-WAN | Remove step 03 input rules if needed |
 | 04 | `router/04-clock.rsc` | Sets clock/timezone | Time and timezone look right | Set clock manually |
 | 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN IDs 10/20/30/50/60/70 present | Disable vlan-filtering and recover access |
 | 06 | `router/06-vlan-interfaces.rsc` | VLAN interfaces + gateway IPs | Interfaces `vlan-*` exist with `.1` IPs | Remove bad VLAN interfaces |
@@ -74,18 +57,20 @@ Continue:
 | 12 | `router/12-dns-fallback.rsc` | Router DNS fallback | Router DNS uses AdGuard + fallback | Reset `/ip dns` to known-good |
 | 13 | `router/13-ntp.rsc` | NTP client config | Router time syncs (local first, public fallback) | Set time manually and retry |
 | 14 | `router/14-capsman.rsc` | CAPsMAN profiles/provisioning | AP appears in CAPsMAN | Disable CAPsMAN config and use AP standalone |
+| 15 | `router/15-firewall-input-lockdown.rsc` | Strict router input lock-down | MGMT can manage router, non-MGMT admin blocked | Disable step 15 rules from local session |
 
 ## Important security notes
 
 - Step 03 allows DHCP input on non-WAN interfaces so non-MGMT VLANs can still get leases.
-- Step 03 still blocks non-MGMT admin access to the router.
-- Only MGMT subnet should manage router.
+- Step 03 does not do final lock-down anymore.
+- Step 15 applies final lock-down.
+- After step 15, only MGMT subnet should manage router.
 
 ## Safe first run command
 
 ```bash
-./scripts/apply-all.sh --env secrets.env --until 03-firewall-wan-drop.rsc
-./scripts/apply-all.sh --env secrets.env --from 04-clock.rsc --pause-each
+./scripts/apply-all.sh --env secrets.env --until 14-capsman.rsc --pause-each
+./scripts/apply-all.sh --env secrets.env --until 15-firewall-input-lockdown.rsc
 ```
 
 ## Resume command
