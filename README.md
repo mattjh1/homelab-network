@@ -93,7 +93,10 @@ Useful options:
 
 - DHCP input is allowed on non-WAN interfaces so all VLANs can get leases.
 - Router admin lock-down is applied in step 15 (MGMT only).
+- MGMT can reach SRV for admin tasks.
+- MGMT and SRV have explicit WAN egress allow rules.
 - DNS redirect forces CORE/KIDS/IOT to AdGuard.
+- MGMT and SRV DNS are trusted by policy and not force-redirected.
 - Guest DNS uses public resolver (`1.1.1.1` by default).
 - NTP uses local server first and public fallback for first boot safety.
 

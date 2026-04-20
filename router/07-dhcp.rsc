@@ -11,12 +11,12 @@
 /ip pool add name=pool-iot ranges=192.168.60.40-192.168.60.254
 /ip pool add name=pool-guest ranges=192.168.70.40-192.168.70.254
 
-/ip dhcp-server add name=dhcp-mgmt interface=vlan-mgmt address-pool=pool-mgmt
-/ip dhcp-server add name=dhcp-core interface=vlan-core address-pool=pool-core
-/ip dhcp-server add name=dhcp-srv interface=vlan-srv address-pool=pool-srv
-/ip dhcp-server add name=dhcp-kids interface=vlan-kids address-pool=pool-kids
-/ip dhcp-server add name=dhcp-iot interface=vlan-iot address-pool=pool-iot
-/ip dhcp-server add name=dhcp-guest interface=vlan-guest address-pool=pool-guest
+/ip dhcp-server add name=dhcp-mgmt interface=vlan-mgmt address-pool=pool-mgmt lease-time=12h
+/ip dhcp-server add name=dhcp-core interface=vlan-core address-pool=pool-core lease-time=12h
+/ip dhcp-server add name=dhcp-srv interface=vlan-srv address-pool=pool-srv lease-time=12h
+/ip dhcp-server add name=dhcp-kids interface=vlan-kids address-pool=pool-kids lease-time=4h
+/ip dhcp-server add name=dhcp-iot interface=vlan-iot address-pool=pool-iot lease-time=4h
+/ip dhcp-server add name=dhcp-guest interface=vlan-guest address-pool=pool-guest lease-time=1h
 
 /ip dhcp-server network add address=192.168.10.0/24 gateway=192.168.10.1 dns-server=$adguardDns
 /ip dhcp-server network add address=192.168.20.0/24 gateway=192.168.20.1 dns-server=$adguardDns

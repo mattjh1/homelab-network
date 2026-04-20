@@ -10,6 +10,7 @@
 :if ($enableCap = "true") do={
   /interface bridge add name=$lanBridge vlan-filtering=no
   /interface bridge port add bridge=$lanBridge interface=$apTrunkPort frame-types=admit-only-vlan-tagged
+  # SRV VLAN 30 is intentionally excluded from AP trunk.
   /interface bridge vlan add bridge=$lanBridge vlan-ids=10,20,50,60,70 tagged=$lanBridge,$apTrunkPort
   /interface bridge set [find where name=$lanBridge] vlan-filtering=yes
 

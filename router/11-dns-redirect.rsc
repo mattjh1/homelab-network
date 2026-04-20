@@ -1,4 +1,6 @@
 # Step 11 - DNS redirect policy
+# MGMT and SRV are intentionally not force-redirected.
+# CORE/KIDS/IOT are force-redirected to AdGuard.
 
 :local adguardDns "{{ .ADGUARD_DNS_IP }}"
 

@@ -49,11 +49,11 @@ This reduces deploy friction and reconnect pain.
 | 04 | `router/04-clock.rsc` | Sets clock/timezone | Time and timezone look right | Set clock manually |
 | 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN IDs 10/20/30/50/60/70 present | Disable vlan-filtering and recover access |
 | 06 | `router/06-vlan-interfaces.rsc` | VLAN interfaces + gateway IPs | Interfaces `vlan-*` exist with `.1` IPs | Remove bad VLAN interfaces |
-| 07 | `router/07-dhcp.rsc` | DHCP pools/servers/networks | Clients get leases on each VLAN | Disable DHCP entries and retry |
+| 07 | `router/07-dhcp.rsc` | DHCP pools/servers/networks | Clients get leases on each VLAN (12h trusted, 4h kids/iot, 1h guest) | Disable DHCP entries and retry |
 | 08 | `router/08-static-lease.rsc` | Static lease for server | `192.168.30.10` lease bound to server MAC | Remove bad lease entry |
 | 09 | `router/09-nat.rsc` | WAN masquerade | LAN clients reach internet | Disable NAT rule and re-add |
-| 10 | `router/10-firewall-forward.rsc` | Inter-VLAN forward policy | CORE->SRV works, KIDS/IOT/GUEST blocked from LAN | Disable step 10 rules and apply safe baseline |
-| 11 | `router/11-dns-redirect.rsc` | Force DNS to AdGuard for CORE/KIDS/IOT | DNS logs show queries at AdGuard | Remove step 11 NAT rules |
+| 10 | `router/10-firewall-forward.rsc` | Inter-VLAN forward policy | MGMT->SRV and CORE->SRV work, KIDS/IOT/GUEST blocked from LAN | Disable step 10 rules and apply safe baseline |
+| 11 | `router/11-dns-redirect.rsc` | Force DNS to AdGuard for CORE/KIDS/IOT | DNS logs show CORE/KIDS/IOT at AdGuard (MGMT/SRV trusted) | Remove step 11 NAT rules |
 | 12 | `router/12-dns-fallback.rsc` | Router DNS fallback | Router DNS uses AdGuard + fallback | Reset `/ip dns` to known-good |
 | 13 | `router/13-ntp.rsc` | NTP client config | Router time syncs (local first, public fallback) | Set time manually and retry |
 | 14 | `router/14-capsman.rsc` | CAPsMAN profiles/provisioning | AP appears in CAPsMAN | Disable CAPsMAN config and use AP standalone |
@@ -65,6 +65,8 @@ This reduces deploy friction and reconnect pain.
 - Step 03 does not do final lock-down anymore.
 - Step 15 applies final lock-down.
 - After step 15, only MGMT subnet should manage router.
+- MGMT->SRV is explicitly allowed for admin workflow.
+- MGMT and SRV have explicit WAN forward allow rules.
 
 ## Safe first run command
 

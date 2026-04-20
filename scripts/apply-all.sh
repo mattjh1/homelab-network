@@ -61,6 +61,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if (( RESUME )) && [[ -n "$START_FROM" ]]; then
+  echo "--resume and --from cannot be used together" >&2
+  exit 1
+fi
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE" >&2
   echo "Copy secrets.env.example to secrets.env and fill values first." >&2
