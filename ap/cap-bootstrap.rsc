@@ -2,6 +2,7 @@
 
 :local enableCap "{{ .ENABLE_AP_CAP }}"
 :local lanBridge "{{ .LAN_BRIDGE }}"
+# AP_TRUNK_PORT is AP-side uplink (usually ether1). Router-side trunk is ROUTER_AP_TRUNK_PORT.
 :local apTrunkPort "{{ .AP_TRUNK_PORT }}"
 :local capsmanDiscoveryIface "{{ .CAPSMAN_DISCOVERY_INTERFACE }}"
 

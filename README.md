@@ -24,10 +24,18 @@ Source of truth is template scripts in `router/` and `ap/`.
 
 - `router/` ordered router scripts
 - `ap/` AP bootstrap script
-- `switch/` manual switch notes
+- `switch/` optional notes (not required in current router-as-switch path)
 - `docs/network-plan.md` runbook
 - `scripts/apply-all.sh` runner
 - `secrets.env.example` env template
+
+## Router port map (current hardware)
+
+- `ether1`: WAN uplink
+- `ether2`: office access (CORE VLAN 20)
+- `ether3`: office access (SRV VLAN 30, server)
+- `ether4`: AP trunk (via PoE injector, tagged VLANs)
+- `ether5`: living room dumb switch uplink (IOT VLAN 60)
 
 ## First setup (safe way)
 
@@ -54,7 +62,8 @@ chmod 600 secrets.env
 
 - SSH key login works.
 - Dry-run has no render errors.
-- `WAN_INTERFACE`, `LAN_BRIDGE`, `TRUNK_PORT` are correct.
+- `WAN_INTERFACE`, `LAN_BRIDGE`, `ROUTER_AP_TRUNK_PORT` are correct.
+- Office/living room port vars match real patching.
 
 ### If broken
 
@@ -92,7 +101,8 @@ Useful options:
 ## Important behavior
 
 - DHCP input is allowed on non-WAN interfaces so all VLANs can get leases.
-- Router admin lock-down is applied in step 15 (MGMT only).
+- Router admin lock-down is applied in step 15.
+- Admin is allowed from MGMT subnet and one trusted CORE laptop IP.
 - MGMT can reach SRV for admin tasks.
 - MGMT and SRV have explicit WAN egress allow rules.
 - DNS redirect forces CORE/KIDS/IOT to AdGuard.
@@ -102,9 +112,11 @@ Useful options:
 
 ## AP and switch
 
-- Switch config is manual. See `switch/README.md`.
+- Dedicated managed switch is optional in this version.
+- Router bridge handles VLAN switching directly.
 - AP bootstrap is template-based in `ap/cap-bootstrap.rsc`.
-- AP and switch should be connected after base router steps are stable.
+- AP connects to router `ether4` through PoE injector.
+- Living room dumb switch connects to router `ether5`.
 - SSH post-install setup (jump host + ProxyJump): `docs/ssh-setup.md`.
 
 ## Secrets

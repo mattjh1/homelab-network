@@ -25,7 +25,7 @@ Short steps. No guesswork.
 
 - Verify SSH key login works.
 - Verify `secrets.env` exists.
-- Verify WAN/trunk ports are correct.
+- Verify router port map is correct (`ether1` WAN, `ether2` CORE office, `ether3` SRV office, `ether4` AP trunk, `ether5` living room IOT).
 - Run dry-run.
 
 ### Check
@@ -47,7 +47,7 @@ This reduces deploy friction and reconnect pain.
 | 02 | `router/02-wan.rsc` | Starts WAN DHCP | Default route + ping internet | Disable bad WAN client and retry |
 | 03 | `router/03-firewall-wan-drop.rsc` | Input baseline (safe) | WAN input blocked, DHCP still works for non-WAN | Remove step 03 input rules if needed |
 | 04 | `router/04-clock.rsc` | Sets clock/timezone | Time and timezone look right | Set clock manually |
-| 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN IDs 10/20/30/50/60/70 present | Disable vlan-filtering and recover access |
+| 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN table maps `ether4` trunk and access ports (`ether2` CORE, `ether3` SRV, `ether5` IOT) | Disable vlan-filtering and recover access |
 | 06 | `router/06-vlan-interfaces.rsc` | VLAN interfaces + gateway IPs | Interfaces `vlan-*` exist with `.1` IPs | Remove bad VLAN interfaces |
 | 07 | `router/07-dhcp.rsc` | DHCP pools/servers/networks | Clients get leases on each VLAN (12h trusted, 4h kids/iot, 1h guest) | Disable DHCP entries and retry |
 | 08 | `router/08-static-lease.rsc` | Static lease for server | `192.168.30.10` lease bound to server MAC | Remove bad lease entry |
@@ -57,14 +57,14 @@ This reduces deploy friction and reconnect pain.
 | 12 | `router/12-dns-fallback.rsc` | Router DNS fallback | Router DNS uses AdGuard + fallback | Reset `/ip dns` to known-good |
 | 13 | `router/13-ntp.rsc` | NTP client config | Router time syncs (local first, public fallback) | Set time manually and retry |
 | 14 | `router/14-capsman.rsc` | CAPsMAN profiles/provisioning | AP appears in CAPsMAN | Disable CAPsMAN config and use AP standalone |
-| 15 | `router/15-firewall-input-lockdown.rsc` | Strict router input lock-down | MGMT can manage router, non-MGMT admin blocked | Disable step 15 rules from local session |
+| 15 | `router/15-firewall-input-lockdown.rsc` | Strict router input lock-down | MGMT can manage router; trusted CORE admin IP can manage router; others blocked | Disable step 15 rules from local session |
 
 ## Important security notes
 
 - Step 03 allows DHCP input on non-WAN interfaces so non-MGMT VLANs can still get leases.
 - Step 03 does not do final lock-down anymore.
 - Step 15 applies final lock-down.
-- After step 15, only MGMT subnet should manage router.
+- After step 15, only MGMT subnet and `TRUSTED_CORE_ADMIN_IP` should manage router.
 - MGMT->SRV is explicitly allowed for admin workflow.
 - MGMT and SRV have explicit WAN forward allow rules.
 

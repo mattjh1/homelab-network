@@ -1,12 +1,27 @@
 # Step 05 - Bridge and VLAN filtering
 
 :local lanBridge "{{ .LAN_BRIDGE }}"
-:local trunkPort "{{ .TRUNK_PORT }}"
+:local apTrunkPort "{{ .ROUTER_AP_TRUNK_PORT }}"
+:local officeCorePort "{{ .OFFICE_CORE_PORT }}"
+:local officeSrvPort "{{ .OFFICE_SRV_PORT }}"
+:local livingroomAccessPort "{{ .LIVINGROOM_ACCESS_PORT }}"
+:local officeCoreVlan {{ .OFFICE_CORE_VLAN_ID }}
+:local officeSrvVlan {{ .OFFICE_SRV_VLAN_ID }}
+:local livingroomVlan {{ .LIVINGROOM_VLAN_ID }}
 
 :put "Step 05: bridge and VLAN setup start"
 /interface bridge add name=$lanBridge vlan-filtering=no
-/interface bridge port add bridge=$lanBridge interface=$trunkPort frame-types=admit-only-vlan-tagged
-/interface bridge vlan add bridge=$lanBridge vlan-ids=10,20,30,50,60,70 tagged=$lanBridge,$trunkPort
+/interface bridge port add bridge=$lanBridge interface=$apTrunkPort frame-types=admit-only-vlan-tagged
+/interface bridge port add bridge=$lanBridge interface=$officeCorePort frame-types=admit-only-untagged-and-priority-tagged pvid=$officeCoreVlan
+/interface bridge port add bridge=$lanBridge interface=$officeSrvPort frame-types=admit-only-untagged-and-priority-tagged pvid=$officeSrvVlan
+/interface bridge port add bridge=$lanBridge interface=$livingroomAccessPort frame-types=admit-only-untagged-and-priority-tagged pvid=$livingroomVlan
+
+/interface bridge vlan add bridge=$lanBridge vlan-ids=10 tagged=$lanBridge,$apTrunkPort
+/interface bridge vlan add bridge=$lanBridge vlan-ids=20 tagged=$lanBridge,$apTrunkPort untagged=$officeCorePort
+/interface bridge vlan add bridge=$lanBridge vlan-ids=30 tagged=$lanBridge,$apTrunkPort untagged=$officeSrvPort
+/interface bridge vlan add bridge=$lanBridge vlan-ids=50 tagged=$lanBridge,$apTrunkPort
+/interface bridge vlan add bridge=$lanBridge vlan-ids=60 tagged=$lanBridge,$apTrunkPort untagged=$livingroomAccessPort
+/interface bridge vlan add bridge=$lanBridge vlan-ids=70 tagged=$lanBridge,$apTrunkPort
 /interface bridge set [find where name=$lanBridge] vlan-filtering=yes
 :put "Step 05: bridge and VLAN setup complete"
 
