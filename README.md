@@ -36,6 +36,7 @@ Source of truth is template scripts in `router/` and `ap/`.
 - `ether3`: office access (SRV VLAN 30, server)
 - `ether4`: AP trunk (via PoE injector, tagged VLANs)
 - `ether5`: living room dumb switch uplink (IOT VLAN 60)
+- `ether6`: MGMT access (untagged VLAN 10, recovery path)
 
 ## First setup (safe way)
 
@@ -63,11 +64,12 @@ chmod 600 secrets.env
 - SSH key login works.
 - Dry-run has no render errors.
 - `WAN_INTERFACE`, `LAN_BRIDGE`, `ROUTER_AP_TRUNK_PORT` are correct.
-- Office/living room port vars match real patching.
+- Access port vars (`MGMT_ACCESS_PORT`, office, living room) match real patching.
 
 ### If broken
 
 - Use direct cable or console access.
+- If remote path fails, move laptop patch-panel cable to MGMT drop (`MGMT_ACCESS_PORT`) and reconnect from MGMT VLAN.
 - Undo last change.
 - Re-run from last good step:
 
@@ -117,6 +119,7 @@ Useful options:
 - AP bootstrap is template-based in `ap/cap-bootstrap.rsc`.
 - AP connects to router `ether4` through PoE injector.
 - Living room dumb switch connects to router `ether5`.
+- MGMT fallback laptop access is on router `ether6`.
 - SSH post-install setup (jump host + ProxyJump): `docs/ssh-setup.md`.
 
 ## Secrets

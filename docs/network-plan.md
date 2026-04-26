@@ -25,7 +25,7 @@ Short steps. No guesswork.
 
 - Verify SSH key login works.
 - Verify `secrets.env` exists.
-- Verify router port map is correct (`ether1` WAN, `ether2` CORE office, `ether3` SRV office, `ether4` AP trunk, `ether5` living room IOT).
+- Verify router port map is correct (`ether1` WAN, `ether2` CORE office, `ether3` SRV office, `ether4` AP trunk, `ether5` living room IOT, `ether6` MGMT fallback).
 - Run dry-run.
 
 ### Check
@@ -47,7 +47,7 @@ This reduces deploy friction and reconnect pain.
 | 02 | `router/02-wan.rsc` | Starts WAN DHCP | Default route + ping internet | Disable bad WAN client and retry |
 | 03 | `router/03-firewall-wan-drop.rsc` | Input baseline (safe) | WAN input blocked, DHCP still works for non-WAN | Remove step 03 input rules if needed |
 | 04 | `router/04-clock.rsc` | Sets clock/timezone | Time and timezone look right | Set clock manually |
-| 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN table maps `ether4` trunk and access ports (`ether2` CORE, `ether3` SRV, `ether5` IOT) | Disable vlan-filtering and recover access |
+| 05 | `router/05-bridge-vlans.rsc` | Bridge + VLAN table + filtering | Bridge exists, VLAN table maps `ether4` trunk and access ports (`ether6` MGMT, `ether2` CORE, `ether3` SRV, `ether5` IOT) | Disable vlan-filtering and recover access |
 | 06 | `router/06-vlan-interfaces.rsc` | VLAN interfaces + gateway IPs | Interfaces `vlan-*` exist with `.1` IPs | Remove bad VLAN interfaces |
 | 07 | `router/07-dhcp.rsc` | DHCP pools/servers/networks | Clients get leases on each VLAN (12h trusted, 4h kids/iot, 1h guest) | Disable DHCP entries and retry |
 | 08 | `router/08-static-lease.rsc` | Static lease for server | `192.168.30.10` lease bound to server MAC | Remove bad lease entry |
@@ -80,6 +80,12 @@ This reduces deploy friction and reconnect pain.
 ```bash
 ./scripts/apply-all.sh --env secrets.env --resume
 ```
+
+## Fallback access path
+
+- If normal management path dies, use patch panel fallback.
+- Move laptop cable to MGMT drop wired to router `ether6`.
+- Reconnect from MGMT VLAN (`192.168.10.0/24`) and continue recovery.
 
 ## Incident note template
 
