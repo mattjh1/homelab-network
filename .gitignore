@@ -1,5 +1,6 @@
 # Local secrets and env
 secrets.env
+containers/AdGuardHome.yaml
 .env
 .env.*
 
