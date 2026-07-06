@@ -18,7 +18,7 @@ Source of truth is template scripts in `router/` and `ap/`.
 
 - Never commit real secrets.
 - Keep one script per step.
-- Run in order (`01` -> `14`).
+- Run in order (`01` -> `17`).
 - If one step fails, stop.
 - Fix or roll back before next step.
 
@@ -33,7 +33,7 @@ Source of truth is template scripts in `router/` and `ap/`.
 
 ## Router port map (current hardware)
 
-- `ether1`: WAN uplink
+- `ether1`: legacy WAN, disabled — WAN moved to `sfp-sfpplus1`
 - `ether2`: office access (CORE VLAN 20)
 - `ether3`: office access (SRV VLAN 30, server)
 - `ether4`: AP trunk (via PoE injector, tagged VLANs)
@@ -81,13 +81,14 @@ chmod 600 secrets.env
 
 ## Apply flow
 
-Step 03 is the baseline firewall (WAN drop, DHCP allow).
-Steps 01–14 are the full setup. No strict input lockdown — `ether6` is the permanent emergency access path instead.
+Step 03 is the baseline firewall (WAN drop, DHCP allow). Step 15 adds the
+real default-drop input lockdown; `ether6` (MGMT) stays the permanent
+out-of-band path regardless.
 
 Recommended first run:
 
 ```bash
-./scripts/apply-all.sh --env secrets.env --until 14-capsman.rsc --pause-each
+./scripts/apply-all.sh --env secrets.env --until 17-adguard-container.rsc --pause-each
 ```
 
 Useful options:
@@ -101,18 +102,18 @@ Useful options:
 
 ## Important behavior
 
-- DHCP input is allowed on non-WAN interfaces so all VLANs can get leases.
-- No strict router input lockdown — `ether6` at `192.168.10.1/24` is the permanent out-of-band management path.
-- MGMT can reach SRV for admin tasks.
+- MGMT can reach SRV for admin tasks, and MGMT->CAPsMAN-mgmt (`192.168.110.0/24`) for AP management.
 - MGMT and SRV have explicit WAN egress allow rules.
 - DNS redirect forces CORE/KIDS/IOT to AdGuard (`192.168.30.10`).
-- DHCP advertises two DNS servers: AdGuard primary + container fallback (`172.31.255.2`).
-- KIDS/IOT have explicit forward allow rules to reach AdGuard before the LAN block rules hit.
+- DHCP advertises two DNS servers: AdGuard primary + router-hosted container fallback (`172.31.255.2`, step 17).
+- KIDS/IOT have explicit forward allow rules to reach AdGuard (incl. DNS-over-TLS) before the LAN block rules hit.
 - KIDS/IOT/GUEST are blocked from querying router DNS directly (input chain, step 10).
 - MGMT and SRV DNS are trusted by policy and not force-redirected.
 - Guest DNS uses public resolver (`1.1.1.1`), no AdGuard.
 - NTP uses local server first and public fallback for first boot safety.
-- CAPsMAN manages AP with SSIDs on both 2.4GHz and 5GHz for all networks.
+- CAPsMAN manages AP with SSIDs on both 2.4GHz and 5GHz for all networks (2.4GHz pinned to channel 6).
+- Step 15: default-drop input chain — only MGMT and a narrow SRV->API hole get past it.
+- Step 16: `/ip service` locked to MGMT (ssh/www/winbox) or SRV (api), ftp/telnet disabled, MAC discovery disabled.
 
 ## AP and switch
 
