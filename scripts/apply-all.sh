@@ -76,10 +76,10 @@ set -a
 source "$ENV_FILE"
 set +a
 
-ROUTER_SCRIPT_DIR="${ROUTER_SCRIPT_DIR:-router}"
-APPLY_LOG_DIR="${APPLY_LOG_DIR:-logs}"
-APPLY_STATE_DIR="${APPLY_STATE_DIR:-state}"
-RENDERED_ROUTER_DIR="${RENDERED_ROUTER_DIR:-.rendered/router}"
+ROUTER_SCRIPT_DIR="router"
+APPLY_LOG_DIR="logs"
+APPLY_STATE_DIR="state"
+RENDERED_ROUTER_DIR=".rendered/router"
 ROUTER_SSH_PORT="${ROUTER_SSH_PORT:-22}"
 APPLY_CONNECT_TIMEOUT="${APPLY_CONNECT_TIMEOUT:-8}"
 
@@ -116,7 +116,7 @@ fi
 
 render_templates() {
   printf '%s %s\n' "$(date -Is)" "Rendering router templates via Go" | tee -a "$RUN_LOG"
-  go run scripts/render-router-templates.go --src-dir "$ROUTER_SCRIPT_DIR" --dst-dir "$RENDERED_ROUTER_DIR"
+  go run scripts/render-router-templates.go
 }
 
 render_templates

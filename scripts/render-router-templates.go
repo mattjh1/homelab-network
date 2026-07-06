@@ -2,65 +2,45 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"text/template"
+)
+
+const (
+	srcDir = "router"
+	dstDir = ".rendered/router"
 )
 
 type envMap map[string]string
 
 func main() {
-	srcDir := flag.String("src-dir", "router", "Source router template directory")
-	dstDir := flag.String("dst-dir", ".rendered/router", "Destination directory for rendered .rsc files")
-	flag.Parse()
-
-	if err := renderAll(*srcDir, *dstDir); err != nil {
+	if err := renderAll(srcDir, dstDir); err != nil {
 		fmt.Fprintf(os.Stderr, "render error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 func renderAll(srcDir, dstDir string) error {
-	info, err := os.Stat(srcDir)
-	if err != nil {
-		return fmt.Errorf("stat src-dir: %w", err)
-	}
-	if !info.IsDir() {
-		return errors.New("src-dir must be a directory")
-	}
 	if err := os.MkdirAll(dstDir, 0o755); err != nil {
 		return fmt.Errorf("create dst-dir: %w", err)
 	}
 
-	entries, err := os.ReadDir(srcDir)
+	paths, err := filepath.Glob(filepath.Join(srcDir, "*.rsc"))
 	if err != nil {
-		return fmt.Errorf("read src-dir: %w", err)
+		return fmt.Errorf("glob src-dir: %w", err)
 	}
-
-	var names []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if strings.HasSuffix(e.Name(), ".rsc") {
-			names = append(names, e.Name())
-		}
-	}
-	sort.Strings(names)
-	if len(names) == 0 {
+	if len(paths) == 0 {
 		return errors.New("no .rsc template files found")
 	}
 
 	data := collectEnv()
-	for _, name := range names {
-		srcPath := filepath.Join(srcDir, name)
-		dstPath := filepath.Join(dstDir, name)
+	for _, srcPath := range paths {
+		dstPath := filepath.Join(dstDir, filepath.Base(srcPath))
 		if err := renderFile(srcPath, dstPath, data); err != nil {
-			return fmt.Errorf("render %s: %w", name, err)
+			return fmt.Errorf("render %s: %w", srcPath, err)
 		}
 	}
 	return nil
