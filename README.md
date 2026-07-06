@@ -122,11 +122,23 @@ Useful options:
 - AP connects to router `ether4` through PoE injector.
 - Living room dumb switch connects to router `ether5`.
 - MGMT fallback laptop access is on router `ether6`.
-- SSH post-install setup (jump host + ProxyJump): `docs/ssh-setup.md`.
+- SSH post-install setup (wired MGMT-only, key auth): `docs/ssh-setup.md`.
 
 ## Secrets
 
 - Real values go in `secrets.env` only.
 - `secrets.env` is gitignored.
 - Planned future: 1Password injection.
+
+## TODO: printer on IoT VLAN, print from CORE
+
+Prepped:
+- `mdns-repeat-ifaces=vlan-core,vlan-iot` set (step 12), lets CORE discover IoT mDNS services (e.g. AirPrint/Bonjour).
+
+Still needed once printer is connected:
+- Confirm printer's DHCP lease/IP on IoT (60).
+- Add forward firewall rule(s) allowing CORE (20) -> printer IP for actual print traffic (discovery alone isn't enough):
+  - IPP: `protocol=tcp dst-port=631`
+  - Raw/JetDirect (if used): `protocol=tcp dst-port=9100`
+- Consider a static DHCP lease for the printer so the firewall rule doesn't break on IP change.
 
